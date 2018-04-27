@@ -62,16 +62,26 @@ contract Voting {
     }
 
     modifier onlyTeamLead(uint _teamId) {
-        if (_teamId <= teams.length && teams[_teamId - 1].lead == msg.sender) _;
+        if (isTeamLead(_teamId, msg.sender)) _;
     }
 
     modifier validTeamId(uint _teamId) {
-        assert(_teamId > 0);
+        assertIsValidTeamId(_teamId);
         _;
     }
 
     modifier onlyRegistered() {
         if (registeredParticipants[msg.sender]) _;
+    }
+
+    // modifier functions (for code reuse later on in this contract)
+
+    function isTeamLead(uint _teamId, address _user) internal returns (bool) {
+        return (_teamId <= teams.length && teams[_teamId - 1].lead == _user);
+    }
+
+    function assertIsValidTeamId(uint _teamId) internal {
+        assert(_teamId > 0);
     }
 
     // ctor
@@ -122,13 +132,13 @@ contract Voting {
         registeredMembers[_lead] = teamId_;
     }
 
-    function addVoteCategory(string _name) public {
+    function addVoteCategory(string _name) public onlyChairperson {
         // "Feasibility", "Coolness", "Implementation", "Importance", "Presentation" etc . . .
         addVoteCategory(_name, 0, 10);
     }
 
     // (Overload with min max values for votes)
-    function addVoteCategory(string _name, uint _minValue, uint _maxValue) public {
+    function addVoteCategory(string _name, uint _minValue, uint _maxValue) public onlyChairperson {
         voteCategories[numVoteCategories] = VoteCategory({
             isActive:  true,
             name    : _name,
@@ -139,7 +149,7 @@ contract Voting {
         numVoteCategories++;
     }
 
-    function closeVoteCategory(uint _index) public 
+    function closeVoteCategory(uint _index) public onlyChairperson
         returns (bool isSuccess_, bool catNotFound_, bool alreadyClosed_) 
     {
         isSuccess_     = false;
@@ -159,15 +169,31 @@ contract Voting {
         }
     }
 
-    // vote-setup-related functions (by team leads?)
-    // TODO: This method only needs _teamId if chairperson . . . make two methods, one for each . . .
-    // leader ... can use sg.sender and registeredMembers to get the teamId
-    function addTeamMember(uint _teamId, address _member) public onlyTeamLead(_teamId) validTeamId(_teamId) {
-        require(registeredParticipants[_member]);
+    // vote-setup-related functions
+
+    function addTeamMember(uint _teamId, address _member) public onlyChairperson validTeamId(_teamId) {
+        registeredParticipants[_member] = true;
 
         require(registeredMembers[_member] == 0);
 
         registeredMembers[_member] = _teamId;
+    }
+
+    function addTeamMember(address _member) public /* onlyTeamLead validTeamId */ {
+        require(registeredParticipants[msg.sender]);
+        require(registeredParticipants[_member]);
+        
+        uint teamId = registeredMembers[msg.sender];
+
+        // validTeamId
+        assertIsValidTeamId(teamId);
+
+        // onlyTeamLead
+        require(isTeamLead(teamId, msg.sender));
+
+        require(registeredMembers[_member] == 0);
+
+        registeredMembers[_member] = teamId;
     }
 
     function changeTeamName(uint _teamId, string _newName) public onlyTeamLead(_teamId) validTeamId(_teamId) {
@@ -175,7 +201,6 @@ contract Voting {
     }
 
     // voting (by team members)
-    // TODO: Don't need to provide _teamId!
     function vote(uint _voteCategoryId, uint _teamId, uint _value) public onlyRegistered validTeamId(_teamId)
         returns (bool isSuccess_, bool indexOutOfRange_, bool alreadyVotedWarning_, bool valueOutOfRange_)
     {
@@ -248,7 +273,7 @@ contract Voting {
         }
     }
 
-    // vote-talling
+    // vote-tallying
 
     function getWinningTeamsForCategory(uint _voteCategoryId) public view returns (uint[] teamIds_) {
         (teamIds_,) = getWinningTeamsForCategory(_voteCategoryId, true, false);
@@ -281,7 +306,7 @@ contract Voting {
     }
 
     function getBestInShow(bool _includeSelfishVotes, bool _includeNonMembers) public view returns (uint[] teamIds_) {
-        uint[] memory teamSums = new uint[](teams.length);        
+        uint[] memory teamSums = new uint[](teams.length);
         for (uint i = 0; i < numVoteCategories; i++) {
             if (voteCategories[i].isActive) {
                 var (winningTeams, winningAmount) = getWinningTeamsForCategory(i, _includeSelfishVotes, _includeNonMembers);
