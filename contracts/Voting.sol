@@ -58,7 +58,8 @@ contract Voting {
     // modifiers
 
     modifier onlyChairperson() {
-        if (chairpersons[msg.sender]) _;
+        require(chairpersons[msg.sender]);
+        _;
     }
 
     modifier onlyTeamLead(uint _teamId) {
@@ -141,7 +142,7 @@ contract Voting {
     function addVoteCategory(string _name, uint _minValue, uint _maxValue) public onlyChairperson {
         voteCategories[numVoteCategories] = VoteCategory({
             isActive:  true,
-            name    : _name,
+            name:     _name,
             minValue: _minValue,
             maxValue: _maxValue,
             numVotes: 0
