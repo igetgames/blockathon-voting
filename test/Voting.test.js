@@ -275,13 +275,26 @@ contract('Voting', accounts => {
       await assertExceptionOccurs(async () => { await voting.vote(31337, 2, false, {from: mem2a}) });
     });
 
-    // it(`should mark the participant as a voter`, async () => {
+    it(`should mark the participant as a voter`, async () => {
+      await voting.vote(0, 2, 5, false, {from: mem2a});
+      
+      let result = await voting.voted.call(0, mem2a, 2);
 
-    // });
+      assert.equal(result, true, `participant wasn't marked as voting in the cat team combo`);
+      
+    });
 
-    // it(`should increment the number of votes if the participant has not voted for that cat/team combo yet`, async () => {
+    it(`should increment the number of votes if the participant has not voted for that cat/team combo yet`, async () => {
+      let result = await voting.voteCategories.call(0);
+      let numVotes = result[4].c[0];
+      
+      await voting.vote(0, 2, 6, false, {from: mem3a});
+      
+      let result2 = await voting.voteCategories.call(0);
+      let numVotes2 = result2[4].c[0];
 
-    // });
+      assert.equal(numVotes + 1, numVotes2, `num votes not incremented`);
+    });
 
     // it(`should warn participant if they already voted`, async () => {
 

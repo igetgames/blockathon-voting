@@ -288,6 +288,11 @@ contract Voting {
         }
     }
 
+    function voted(uint _vcId, address _p, uint _teamId) public view returns (bool) 
+    {
+       return voteCategories[_vcId].voters[_p][_teamId];
+    }
+
     // vote-tallying
 
     function getWinningTeamsForCategory(uint _voteCategoryId) public view returns (uint[] teamIds_) {
