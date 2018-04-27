@@ -180,11 +180,11 @@ contract('Voting', accounts => {
 
     it(`should set VoteCategory to inactive`, async () => {
       let name =  "presentation";
-      await voting.addVoteCategory(name, 0, 10);
-      let response = await voting.closeVoteCategory.call(0);
+      await voting.addVoteCategory(name, 0, 10); // this is the 2nd category... index starts at 0 ("originality")... id of this is 1
+      let response = await voting.closeVoteCategory.call(1);
       assert.equal(response[0], true, '"isSuccess_" was false');
-      await voting.closeVoteCategory(0);
-      let result = await voting.voteCategories.call(0);
+      await voting.closeVoteCategory(1);
+      let result = await voting.voteCategories.call(1);
       let resIsActive = result[0];
 
       assert.equal(resIsActive, false, 'closed voteCat was still active');
@@ -253,40 +253,50 @@ contract('Voting', accounts => {
     });
   });
 
-  // describe('vote', () => {
-  //   it(`should only work if sender is a participant`, async () => {
+  async function setUpTeam(voting, name, lead, members) {
+    if (members.length) {
+      for (var i = 0; i < members.length; i++) {
+        await voting.registerParticipant(members[i]);
+      }
+    }
+    await leaderAddTeam(voting, name, lead, members);
+  }
 
-  //   });
+  describe('vote', () => {
+    it(`should only work if sender is a participant`, async () => {
+      await assertExceptionOccurs(async () => { await voting.vote(0, 2, false, {from: mem2b}) });
+    });
 
-  //   it(`should handle invalid teamId`, async () => {
+    it(`should not allow invalid teamId`, async () => {
+      await assertExceptionOccurs(async () => { await voting.vote(0, 42, false, {from: mem2a}) });
+    });
 
-  //   });
+    it(`should not be successful if invalid voteCatId`, async () => {
+      await assertExceptionOccurs(async () => { await voting.vote(31337, 2, false, {from: mem2a}) });
+    });
 
-  //   it(`should not be successful if invalid voteCatId`, async () => {
+    // it(`should mark the participant as a voter`, async () => {
 
-  //   });
+    // });
 
-  //   it(`should warn participant if they already voted`, async () => {
+    // it(`should increment the number of votes if the participant has not voted for that cat/team combo yet`, async () => {
 
-  //   });
+    // });
 
-  //   it(`should allow participant to change vote`, async () => {
-  //     // also ensure that numVotes is NOT incremented
+    // it(`should warn participant if they already voted`, async () => {
 
-  //   });
+    // });
 
-  //   it(`should ensure that the vote value is in the given range`, async () => {
+    // it(`should allow participant to change vote`, async () => {
+    //   // also ensure that numVotes is NOT incremented
 
-  //   });
+    // });
 
-  //   it(`should mark the participant as a voter`, async () => {
+    // it(`should ensure that the vote value is in the given range`, async () => {
 
-  //   });
+    // });
 
-  //   it(`should increment the number of votes if the participant has not voted for that cat/team combo yet`, async () => { th
-
-  //   });
-  // });
+  });
 
   // describe('getWinningTeamsForCategory', () => {
   //   it(`can correctly compute a sole winner`, async () => {
