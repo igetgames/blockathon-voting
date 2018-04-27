@@ -8,6 +8,8 @@ contract Voting {
         bool      isActive; // TODO: Use this where needed, and add method to revoke a team
         string    name;     // short name (up to 32 bytes)
         address   lead;
+        
+        uint      numMembers;
     }
 
     struct Vote {
@@ -40,13 +42,14 @@ contract Voting {
 
     // (accessor for private prop)
     function getTeam(uint _teamId) public view 
-        returns (bool isActive, string name, address lead) // defying self-established convention to mock struct returns
+        returns (bool isActive, string name, address lead, uint numMembers) // defying self-established convention to mock struct returns
     {
         assert(_teamId <= teams.length && _teamId != 0);
 
-        isActive = teams[_teamId - 1].isActive;
-        name     = teams[_teamId - 1].name;
-        lead     = teams[_teamId - 1].lead;
+        isActive   = teams[_teamId - 1].isActive;
+        name       = teams[_teamId - 1].name;
+        lead       = teams[_teamId - 1].lead;
+        numMembers = teams[_teamId - 1].numMembers;
     }
 
     mapping(uint => VoteCategory) public voteCategories;
@@ -125,9 +128,10 @@ contract Voting {
 
         // (recall that `.push(T)` returns the new _length_)
         teamId_ = teams.push(Team({
-            isActive:  true,
-            name:     _tempName,
-            lead:     _lead
+            isActive:    true,
+            name:       _tempName,
+            lead:       _lead,
+            numMembers:  1
         }));
 
         registeredMembers[_lead] = teamId_;
@@ -172,12 +176,13 @@ contract Voting {
 
     // vote-setup-related functions
 
-    function addTeamMember(uint _teamId, address _member) public onlyChairperson validTeamId(_teamId) {
+    function addMemberToTeam(address _member, uint _teamId) public onlyChairperson validTeamId(_teamId) {
         registeredParticipants[_member] = true;
 
         require(registeredMembers[_member] == 0);
 
         registeredMembers[_member] = _teamId;
+        teams[_teamId - 1].numMembers++;
     }
 
     function addTeamMember(address _member) public /* onlyTeamLead validTeamId */ {
@@ -195,10 +200,19 @@ contract Voting {
         require(registeredMembers[_member] == 0);
 
         registeredMembers[_member] = teamId;
+        teams[teamId - 1].numMembers++;        
     }
 
-    function changeTeamName(uint _teamId, string _newName) public onlyTeamLead(_teamId) validTeamId(_teamId) {
-        teams[_teamId - 1].name = _newName;
+    function changeTeamName(string _newName) public {
+        uint teamId = registeredMembers[msg.sender];
+
+        // validTeamId
+        assertIsValidTeamId(teamId);
+
+        // onlyTeamLead
+        require(isTeamLead(teamId, msg.sender));
+
+        teams[teamId - 1].name = _newName;
     }
 
     // voting (by team members)

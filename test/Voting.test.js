@@ -1,3 +1,5 @@
+const DEBUG = false;
+
 const Voting = artifacts.require('./Voting.sol');
 
 let voting;
@@ -5,6 +7,12 @@ let voting;
 before(async () => {
   voting = await Voting.deployed();
 });
+
+function dlog(msg) {
+  if (DEBUG) {
+    console.log(msg);
+  }
+}
 
 contract('Voting', accounts => {
 
@@ -20,7 +28,7 @@ contract('Voting', accounts => {
   let mem3b = accounts[9];
 
   let chairperson2 = lead1;
-  
+
   // TODO: nonMemberVoter?
 
   async function assertExceptionOccurs(action) {
@@ -32,6 +40,42 @@ contract('Voting', accounts => {
         exceptionOccurred = true;
       }
       assert(exceptionOccurred);
+  }
+
+  async function addTeam(voteContract, name, lead, members) {
+    let teamId = await voteContract.addTeam.call(lead, name);
+    await voteContract.addTeam(lead, name);
+    teamId = teamId.c[0];
+    if (members && members.length) {
+      for (var i = 0; i < members.length; i++) {
+        dlog(`about to register member ${members[i]}... into team ${teamId}`)
+        await voteContract.addMemberToTeam(members[i], teamId);
+      }
+    }
+  }
+
+  async function leaderAddTeam(voteContract, name, lead, members) {
+    let teamId = await voting.registeredMembers.call(lead);
+    if (teamId.c[0] === 0) {
+      dlog("creating team")
+      await voteContract.addTeam(lead, name);
+    }
+    else {
+      dlog(`leader team already exists (${teamId.c[0]})`)
+    }
+
+    if (members && members.length) {
+      for (var i = 0; i < members.length; i++) {
+        let memTeamId = await voting.registeredMembers.call(members[i]);
+        if (memTeamId.c[0] === 0) {
+          dlog(`about to register member ${members[i]}... into team ${teamId}`)
+          await voteContract.addTeamMember(members[i], {from: lead});
+        }
+        else {
+          dlog(`member ${members[i]} already registered to team`)
+        }
+      }
+    }
   }
 
   describe('addChairperson', () => {
@@ -73,20 +117,23 @@ contract('Voting', accounts => {
 
   describe('addTeam', () => {
     it(`should register '_lead' as a participant if not already a participant`, async () => {
-      let name =  "lame winners";
-      let teamId = await voting.addTeam.call(lead2, name);
-      await voting.addTeam(lead2, name);
+      let name =  "alfa team"; //(spelling intentional)
+      let teamId = await voting.addTeam.call(lead1, name);
+      await voting.addTeam(lead1, name);
       let result = await voting.getTeam.call(teamId.c[0]);
       let resIsActive = result[0];
       let resName = result[1];
       let resLead = result[2];
+      let numMems = result[3];
+      
       assert.equal(resIsActive, true, 'newly created team was not active');
       assert.equal(resName, name, 'team name did not match');
-      assert.equal(resLead, lead2, 'team leader did not match');
+      assert.equal(resLead, lead1, 'team leader did not match');
+      assert.equal(numMems, 1, 'number of members was not 1');
     });
 
     it(`will not allow '_lead' to have a team if they already are on a team`, async () => {
-      await assertExceptionOccurs(async () => { await voting.addTeam(lead2, "new team"); });
+      await assertExceptionOccurs(async () => { await voting.addTeam(lead1, "new team"); });
     });
 
     it(`should only work if sender is a chairperson`, async () => {
@@ -101,7 +148,7 @@ contract('Voting', accounts => {
       let max = 10;
       // Apparently, can't call anything but the base function if there are overloads . . .
       await voting.addVoteCategory(name, min, max);
-      
+
       let result = await voting.voteCategories.call(0);
       let resIsActive = result[0];
       let resName = result[1];
@@ -126,56 +173,85 @@ contract('Voting', accounts => {
     });
   });
 
-  // describe('closeVoteCategory', () => {
-  //   it(`handles index out of bounds`, async () => {
+  describe('closeVoteCategory', () => {
+    it(`handles index out of bounds`, async () => {
+      // TODO (not high priority)
+    });
 
-  //   });
+    it(`should set VoteCategory to inactive`, async () => {
+      let name =  "presentation";
+      await voting.addVoteCategory(name, 0, 10);
+      let response = await voting.closeVoteCategory.call(0);
+      assert.equal(response[0], true, '"isSuccess_" was false');
+      await voting.closeVoteCategory(0);
+      let result = await voting.voteCategories.call(0);
+      let resIsActive = result[0];
 
-  //   it(`should set VoteCategory to inactive`, async () => {
+      assert.equal(resIsActive, false, 'closed voteCat was still active');
+    });
 
-  //   });
+    it(`should only work if sender is a chairperson`, async () => {
+      await assertExceptionOccurs(async () => { await voting.closeVoteCategory(0, {from: mem3b}); });
+    });
+  });
 
-  //   it(`should only work if sender is a chairperson`, async () => {
+  describe('addMemberToTeam', () => {
+    it(`should work if sender is a chairperson`, async () => {
+      // (this `addTeam` abstraction may conceal the call, but it's just so darn handy)
+      addTeam(voting, "beta team", lead2, [mem2a]);
 
-  //   });
-  // });
+      await assertExceptionOccurs(async () => { await voting.addMemberToTeam(mem3b, 1, {from: mem3b}); });
+    });
 
-  // describe('addTeamMember', () => {
-  //   it(`should work if sender is a leader`, async () => {
+    it(`should register if not already registed`, async () => {
+      await voting.getTeam.call(1); // TODO: Figure out why it only works with this line
+      let result = await voting.registeredParticipants.call(mem2a);
+      assert.equal(result, true, '"mem2a" was not a registered participant');
+    });
 
-  //   });
+    it(`should not allow invalid teamId`, async () => {
+      await assertExceptionOccurs(async () => { await voting.addMemberToTeam(mem3b, 0); });
+      await assertExceptionOccurs(async () => { await voting.addMemberToTeam(mem3b, 9001); });
+    });
 
-  //   it(`should work if sender is a chairperson`, async () => {
+    it(`should add the member to the team`, async () => {
+        let result = await voting.registeredMembers.call(mem2a);
+        assert.equal(result.c[0], 2, `mem2a wasn't on correct team`);
+    });
+  });
 
-  //     // should register if not already registered . . . 
-  //   });
+  describe('addTeamMember', () => {
+    it(`should work if sender is a leader`, async () => {
+      await voting.registerParticipant(mem3a);
+      await leaderAddTeam(voting, "gamma team", lead3, [mem3a]);
+      await assertExceptionOccurs(async () => { await voting.addTeamMember(mem3b, {from: mem3b}); });
+    });
 
-  //   it(`should only work if member is a registered participant`, async () => {
+    it(`should only work if member is a registered participant`, async () => {
+      await assertExceptionOccurs(async () => { await leaderAddTeam(voting, "gamma team", lead3, [mem3b]) });
+    });
 
-  //   });
+    it(`should add the member to the team`, async () => {
+      let result = await voting.registeredMembers.call(mem3a);
+      assert.equal(result.c[0], 3, `mem3a wasn't on correct team`);
+    });
+  });
 
-  //   it(`should handle invalid teamId`, async () => {
+  describe('changeTeamName', () => {
+    it(`should update the team name`, async () => {
+      let newName = 'alpha team';
+      await voting.changeTeamName(newName, {from: lead1});
+      let result = await voting.getTeam.call(1);
+      let resName = result[1];
+      assert.equal(resName, newName, `name was not updated`);
+    });
 
-  //   });
-
-  //   it(`should add the member to the team`, async () => {
-
-  //   });
-  // });
-
-  // describe('changeTeamName', () => {
-  //   it(`should only work if sender is a leader`, async () => {
-
-  //   });
-
-  //   it(`should handle invalid teamId`, async () => {
-
-  //   });
-
-  //   it(`should update the team name`, async () => {
-
-  //   });
-  // });
+    it(`should only work if sender is a leader`, async () => {
+      await voting.registerParticipant(mem1a);      
+      await leaderAddTeam(voting, "(this name doesn't matter since leader already has a team)", lead1, [mem1a]);
+      await assertExceptionOccurs(async () => { await voting.changeTeamName("losers", {from: mem1a}) });
+    });
+  });
 
   // describe('vote', () => {
   //   it(`should only work if sender is a participant`, async () => {
@@ -191,9 +267,9 @@ contract('Voting', accounts => {
   //   });
 
   //   it(`should warn participant if they already voted`, async () => {
- 
+
   //   });
-    
+
   //   it(`should allow participant to change vote`, async () => {
   //     // also ensure that numVotes is NOT incremented
 
