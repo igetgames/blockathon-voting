@@ -296,19 +296,36 @@ contract('Voting', accounts => {
       assert.equal(numVotes + 1, numVotes2, `num votes not incremented`);
     });
 
-    // it(`should warn participant if they already voted`, async () => {
+    it(`should warn participant if they already voted`, async () => {
+      let response = await voting.vote.call(0, 2, 6, false, {from: mem3a});
+      let isSuccess = response[0];
+      let indexOutOfRange = response[1];
+      let alreadyVoted = response[2];
+      let valueOutOfRange = response[3];
+      assert.equal(isSuccess, false, `a vote was recast, but not explicitly`);
+      assert.equal(alreadyVoted, true, `user's intial vote was not cast`);
+    });
 
-    // });
+    it(`should allow participant to change vote`, async () => {
+      // also ensure that numVotes is NOT incremented
+      let response = await voting.vote.call(0, 2, 6, true, {from: mem3a});
+      let isSuccess = response[0];
+      let indexOutOfRange = response[1];
+      let alreadyVoted = response[2];
+      let valueOutOfRange = response[3];
+      assert.equal(isSuccess, true, `a vote was not able to be explicitly recast`);
+      assert.equal(alreadyVoted, true, `user's intial vote was not cast`);
+    });
 
-    // it(`should allow participant to change vote`, async () => {
-    //   // also ensure that numVotes is NOT incremented
-
-    // });
-
-    // it(`should ensure that the vote value is in the given range`, async () => {
-
-    // });
-
+    it(`should ensure that the vote value is in the given range`, async () => {
+      let response = await voting.vote.call(0, 2, 11, true, {from: mem3a});
+      let isSuccess = response[0];
+      let indexOutOfRange = response[1];
+      let alreadyVoted = response[2];
+      let valueOutOfRange = response[3];
+      assert.equal(isSuccess, false, `a vote was not able to be explicitly recast`);
+      assert.equal(valueOutOfRange, true, `vslue should have been out of range`);
+    });
   });
 
   // describe('getWinningTeamsForCategory', () => {
@@ -332,56 +349,6 @@ contract('Voting', accounts => {
   // describe('getBestInShow', () => {
   //   it(`computes overall winner(s)`, async () => {
 
-  //   });
-  // });
-
-
-  // describe('giveRightToVote', () => {
-  //   accounts.forEach(async (element, i) => {
-  //     it(`should give accounts[${i}] the right to vote`, async () => {
-  //       await voting.giveRightToVote(accounts[i]);
-  //       assert.lengthOf(
-  //         await voting.voters.call(accounts[i]),
-  //         2,
-  //         `failed adding voter ${i}`
-  //       );
-  //     });
-  //   });
-  // });
-
-  // describe('addProposal', () => {
-  //   it(`should add a project proposal`, async () => {
-  //     await voting.addProposal('test project name');
-  //     let proposal = await voting.proposals.call(0);
-  //     proposal = proposal[0];
-  //     assert.equal(
-  //       proposal,
-  //       'test project name',
-  //       'failed adding proposal "test project name"'
-  //     );
-  //   });
-  // });
-
-  // describe('vote', () => {
-  //   accounts.forEach(async (element, i) => {
-  //     it(`should vote for the first project from accounts[${i}]`, async () => {
-  //       await voting.vote(0, { from: accounts[i] });
-  //       let proposalVoteCount = await voting.proposals.call(0);
-  //       proposalVoteCount = proposalVoteCount[1];
-  //       assert.equal(proposalVoteCount, i + 1, `failed voting`);
-  //     });
-  //   });
-  // });
-
-  // describe('winnerName', () => {
-  //   it('should find the winning project: "test project name"', async () => {
-  //     let proposalVoteCount = await voting.proposals.call(0);
-  //     proposalVoteCount = proposalVoteCount[1];
-  //     assert.equal(
-  //       await voting.winnerName(),
-  //       'test project name',
-  //       `wrong winner found`
-  //     );
   //   });
   // });
 });
