@@ -10,7 +10,7 @@ class Home extends Component {
         <br />
         <p><strong>OG Chairperson: </strong><ContractData contract="Voting" method="ogChairperson" /></p>
         <br />
-        <p><strong>Add Chairperson </strong><ContractForm contract="Voting" method="addChairperson" labels={['Chairperson']} /></p>
+        <p><strong>Add Chairperson </strong></p><ContractForm contract="Voting" method="addChairperson" labels={['Chairperson']} />
       </main>
     );
   }
