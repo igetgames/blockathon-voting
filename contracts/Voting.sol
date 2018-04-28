@@ -215,12 +215,12 @@ contract Voting {
         teams[teamId - 1].name = _newName;
     }
 
-    // voting (by team members)
-    function vote(uint _voteCategoryId, uint _teamId, uint _value) public onlyRegistered validTeamId(_teamId)
-        returns (bool isSuccess_, bool indexOutOfRange_, bool alreadyVotedWarning_, bool valueOutOfRange_)
-    {
-        return vote(_voteCategoryId, _teamId, _value, false);
-    }
+    // // voting (by team members)
+    // function vote(uint _voteCategoryId, uint _teamId, uint _value) public onlyRegistered validTeamId(_teamId)
+    //     returns (bool isSuccess_, bool indexOutOfRange_, bool alreadyVotedWarning_, bool valueOutOfRange_)
+    // {
+    //     return vote(_voteCategoryId, _teamId, _value, false);
+    // }
 
     // (Overload where a participant can explicitly change the value of their prior vote)
     function vote(uint _voteCategoryId, uint _teamId, uint _value, bool _forceRevote) public onlyRegistered validTeamId(_teamId)
@@ -293,11 +293,23 @@ contract Voting {
        return voteCategories[_vcId].voters[_p][_teamId];
     }
 
+    function getVoteVal(uint _vcId, address _p, uint _teamId) public view returns (uint) 
+    {
+        for (uint i = 0; i < voteCategories[_vcId].numVotes; i++) {
+            if (voteCategories[_vcId].votes[i].voter == _p
+                && voteCategories[_vcId].votes[i].teamId == _teamId) 
+            {
+                return voteCategories[_vcId].votes[i].value;
+            }
+        }
+        revert();
+    }
+
     // vote-tallying
 
-    function getWinningTeamsForCategory(uint _voteCategoryId) public view returns (uint[] teamIds_) {
-        (teamIds_,) = getWinningTeamsForCategory(_voteCategoryId, true, false);
-    }
+    // function getWinningTeamsForCategory(uint _voteCategoryId) public view returns (uint[] teamIds_) {
+    //     (teamIds_,) = getWinningTeamsForCategory(_voteCategoryId, true, false);
+    // }
 
     // (Overload to support exclusion of votes for "self" by all team members)
     function getWinningTeamsForCategory(uint _vcId, bool _includeSelfishVotes, bool _includeNonMembers) 
