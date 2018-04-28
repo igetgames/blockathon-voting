@@ -1,15 +1,29 @@
-import React, { Component } from 'react';
+import React from 'react';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import sitemap from './sitemap';
 import './App.css';
-import Home from './pages/Home';
 
-class App extends Component {
-  render() {
-    return (
-      <div className="App">
-        <Home />
-      </div>
+const createRoutes = (contents, path) => (
+  contents.reduce((routes, content) => {
+    routes.push(
+      <Route
+        path={(path || '') + '/' + (content.path || '')}
+        component={content.component}
+        key={routes.length}
+      />
     );
-  }
-}
+    return routes;
+  }, [])
+);
 
-export default App;
+const Routes = ({ sitemap }) => (
+  <Switch>
+    {createRoutes(sitemap)}
+  </Switch>
+);
+
+export default () => (
+  <BrowserRouter>
+    <Routes sitemap={sitemap} />
+  </BrowserRouter>
+);
