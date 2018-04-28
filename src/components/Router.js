@@ -1,6 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import sitemap from '../sitemap';
+import { Route, Switch } from 'react-router-dom';
 
 const createRoutes = (contents, path) => (
   contents.reduce((routes, content) => {
@@ -16,14 +15,10 @@ const createRoutes = (contents, path) => (
   }, [])
 );
 
-const Routes = ({ sitemap }) => (
+export const Routes = ({ sitemap }) => (
   <Switch>
     {createRoutes(sitemap)}
   </Switch>
 );
 
-export default () => (
-  <BrowserRouter>
-    <Routes sitemap={sitemap} />
-  </BrowserRouter>
-);
+export default ({ routes }) => routes;
