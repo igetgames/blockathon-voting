@@ -308,11 +308,15 @@ contract('Voting', accounts => {
       let valueOutOfRange = response[3];
       assert.equal(isSuccess, false, `a vote was recast, but not explicitly`);
       assert.equal(alreadyVoted, true, `user's intial vote was not cast`);
+      await voting.vote(0, 2, 7, true, {from: mem3a});
+      var res = await voting.getVoteVal(0, mem3a, 2);
+      assert.equal(res.toString(), '7', `vote val not updated`);
+      
     });
 
     it(`should allow participant to change vote`, async () => {
       // also ensure that numVotes is NOT incremented
-      let response = await voting.vote.call(0, 2, 6, true, {from: mem3a});
+      let response = await voting.vote.call(0, 2, 7, true, {from: mem3a});
       let isSuccess = response[0];
       let indexOutOfRange = response[1];
       let alreadyVoted = response[2];
@@ -332,38 +336,75 @@ contract('Voting', accounts => {
     });
   });
 
-  async function castVote(voting, member, voteCat, team, value) {
-    await voting.vote(voteCat, team, value, true, {from: member});    
-  }
 
   describe('getWinningTeamsForCategory', () => {
     it(`can correctly compute a sole winner`, async () => {
       await setUpTeam(voting, "alpha team", lead1, [mem1a, mem1b]);
       await setUpTeam(voting, "beta team", lead2, [mem2a, mem2b]);
-      castVote(voting, lead1, 0, 1, 0);
-      castVote(voting, mem1a, 0, 1, 0);
-      castVote(voting, mem1b, 0, 1, 0);
 
-      castVote(voting, lead1, 0, 2, 0);
-      castVote(voting, mem1a, 0, 2, 0);
-      castVote(voting, mem1b, 0, 2, 0);
+      // Zeroing out 3 ------------------------------
+      await voting.vote(0, 1, 0, true, {from: lead3});      
+      await voting.vote(0, 1, 0, true, {from: mem3a});      
+      await voting.vote(0, 1, 0, true, {from: mem3b});
 
-      castVote(voting, lead2, 0, 1, 0);
-      castVote(voting, mem2a, 0, 1, 0);
-      castVote(voting, mem2b, 0, 1, 0);
+      await voting.vote(0, 2, 0, true, {from: lead3});      
+      await voting.vote(0, 2, 0, true, {from: mem3a});      
+      await voting.vote(0, 2, 0, true, {from: mem3b});
+      //---------------------------------------------
 
-      castVote(voting, lead1, 0, 2, 0);
-      castVote(voting, mem1a, 0, 2, 0);
-      castVote(voting, mem1b, 0, 2, 0);
+      await voting.vote(0, 1, 10, true, {from: lead1});
+      await voting.vote(0, 1, 10, true, {from: mem1a});
+      await voting.vote(0, 1, 10, true, {from: mem1b});
+      
+      await voting.vote(0, 2, 2, true, {from: lead1});
+      await voting.vote(0, 2, 2, true, {from: mem1a});
+      await voting.vote(0, 2, 2, true, {from: mem1b});
+
+      await voting.vote(0, 1, 7, true, {from: lead2});
+      await voting.vote(0, 1, 7, true, {from: mem2a});
+      await voting.vote(0, 1, 7, true, {from: mem2b});
+
+      await voting.vote(0, 2, 5, true, {from: lead2});
+      await voting.vote(0, 2, 5, true, {from: mem2a});
+      await voting.vote(0, 2, 5, true, {from: mem2b});
  
       let result = await voting.getWinningTeamsForCategory.call(0, true, false);
-console.dir(result);
-
+      assert.equal(result[0].toString(), '1', `the wrong team was considered the winning team`);
     });
 
-  //   it(`can correctly compute a tie between multiple winners`, async () => {
+    it(`can correctly compute a tie between multiple winners`, async () => {
+      await setUpTeam(voting, "alpha team", lead1, [mem1a, mem1b]);
+      await setUpTeam(voting, "beta team", lead2, [mem2a, mem2b]);
 
-  //   });
+      // Zeroing out 3 ------------------------------
+      await voting.vote(0, 1, 0, true, {from: lead3});      
+      await voting.vote(0, 1, 0, true, {from: mem3a});      
+      await voting.vote(0, 1, 0, true, {from: mem3b});
+
+      await voting.vote(0, 2, 0, true, {from: lead3});      
+      await voting.vote(0, 2, 0, true, {from: mem3a});      
+      await voting.vote(0, 2, 0, true, {from: mem3b});
+      //---------------------------------------------
+
+      await voting.vote(0, 1, 5, true, {from: lead1});
+      await voting.vote(0, 1, 5, true, {from: mem1a});
+      await voting.vote(0, 1, 5, true, {from: mem1b});
+      
+      await voting.vote(0, 2, 5, true, {from: lead1});
+      await voting.vote(0, 2, 5, true, {from: mem1a});
+      await voting.vote(0, 2, 5, true, {from: mem1b});
+
+      await voting.vote(0, 1, 5, true, {from: lead2});
+      await voting.vote(0, 1, 5, true, {from: mem2a});
+      await voting.vote(0, 1, 5, true, {from: mem2b});
+
+      await voting.vote(0, 2, 5, true, {from: lead2});
+      await voting.vote(0, 2, 5, true, {from: mem2a});
+      await voting.vote(0, 2, 5, true, {from: mem2b});
+ 
+      let result = await voting.getWinningTeamsForCategory.call(0, true, false);
+      assert.equal(result[0].toString(), '1,2', `the teams did not tie`);
+    });
 
   //   it(`can correctly compute a winner ignoring a selfish-voting team`, async () => {
 

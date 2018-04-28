@@ -80,11 +80,11 @@ contract Voting {
 
     // modifier functions (for code reuse later on in this contract)
 
-    function isTeamLead(uint _teamId, address _user) internal returns (bool) {
+    function isTeamLead(uint _teamId, address _user) internal view returns (bool) {
         return (_teamId <= teams.length && teams[_teamId - 1].lead == _user);
     }
 
-    function assertIsValidTeamId(uint _teamId) internal {
+    function assertIsValidTeamId(uint _teamId) internal pure {
         assert(_teamId > 0);
     }
 
@@ -216,13 +216,6 @@ contract Voting {
     }
 
     // // voting (by team members)
-    // function vote(uint _voteCategoryId, uint _teamId, uint _value) public onlyRegistered validTeamId(_teamId)
-    //     returns (bool isSuccess_, bool indexOutOfRange_, bool alreadyVotedWarning_, bool valueOutOfRange_)
-    // {
-    //     return vote(_voteCategoryId, _teamId, _value, false);
-    // }
-
-    // (Overload where a participant can explicitly change the value of their prior vote)
     function vote(uint _voteCategoryId, uint _teamId, uint _value, bool _forceRevote) public onlyRegistered validTeamId(_teamId)
         returns (bool isSuccess_, bool indexOutOfRange_, bool alreadyVotedWarning_, bool valueOutOfRange_)
     {
@@ -234,8 +227,8 @@ contract Voting {
         if (numVoteCategories > _voteCategoryId && teams.length >= _teamId) {
             // Indices are in range for specified voteCat and team . . .
 
-            if    (_value > voteCategories[_voteCategoryId].minValue
-                && _value < voteCategories[_voteCategoryId].maxValue) 
+            if    (_value >= voteCategories[_voteCategoryId].minValue
+                && _value <= voteCategories[_voteCategoryId].maxValue) 
             { 
                 // `_value` is in the specified voting range for this voteCat scale
 
@@ -307,11 +300,6 @@ contract Voting {
 
     // vote-tallying
 
-    // function getWinningTeamsForCategory(uint _voteCategoryId) public view returns (uint[] teamIds_) {
-    //     (teamIds_,) = getWinningTeamsForCategory(_voteCategoryId, true, false);
-    // }
-
-    // (Overload to support exclusion of votes for "self" by all team members)
     function getWinningTeamsForCategory(uint _vcId, bool _includeSelfishVotes, bool _includeNonMembers) 
         public view returns (uint[] memory teamIds_, uint winningScore_)
     {
