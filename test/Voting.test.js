@@ -264,24 +264,28 @@ contract('Voting', accounts => {
 
   describe('vote', () => {
     it(`should only work if sender is a participant`, async () => {
-      await assertExceptionOccurs(async () => { await voting.vote(0, 2, false, {from: mem2b}) });
+      var result = await voting.vote.call(0, 2, 5, false, {from: mem2b});
+      assert.equal(result[0], false, `update says was successful`);
     });
 
     it(`should not allow invalid teamId`, async () => {
-      await assertExceptionOccurs(async () => { await voting.vote(0, 42, false, {from: mem2a}) });
+      var result = await voting.vote.call(0, 42, 5, false, {from: mem2a});
+      assert.equal(result[0], false, `update says was successful`);
+      assert.equal(result[1], true, `index should be out of range`);
     });
 
     it(`should not be successful if invalid voteCatId`, async () => {
-      await assertExceptionOccurs(async () => { await voting.vote(31337, 2, false, {from: mem2a}) });
+      var result = await voting.vote.call(31337, 2, 5, false, {from: mem2a});
+      assert.equal(result[0], false, `update says was successful`);
+      assert.equal(result[1], true, `index should be out of range`);
     });
 
     it(`should mark the participant as a voter`, async () => {
       await voting.vote(0, 2, 5, false, {from: mem2a});
-      
+
       let result = await voting.voted.call(0, mem2a, 2);
 
       assert.equal(result, true, `participant wasn't marked as voting in the cat team combo`);
-      
     });
 
     it(`should increment the number of votes if the participant has not voted for that cat/team combo yet`, async () => {
@@ -328,10 +332,34 @@ contract('Voting', accounts => {
     });
   });
 
-  // describe('getWinningTeamsForCategory', () => {
-  //   it(`can correctly compute a sole winner`, async () => {
+  async function castVote(voting, member, voteCat, team, value) {
+    await voting.vote(voteCat, team, value, true, {from: member});    
+  }
 
-  //   });
+  describe('getWinningTeamsForCategory', () => {
+    it(`can correctly compute a sole winner`, async () => {
+      await setUpTeam(voting, "alpha team", lead1, [mem1a, mem1b]);
+      await setUpTeam(voting, "beta team", lead2, [mem2a, mem2b]);
+      castVote(voting, lead1, 0, 1, 0);
+      castVote(voting, mem1a, 0, 1, 0);
+      castVote(voting, mem1b, 0, 1, 0);
+
+      castVote(voting, lead1, 0, 2, 0);
+      castVote(voting, mem1a, 0, 2, 0);
+      castVote(voting, mem1b, 0, 2, 0);
+
+      castVote(voting, lead2, 0, 1, 0);
+      castVote(voting, mem2a, 0, 1, 0);
+      castVote(voting, mem2b, 0, 1, 0);
+
+      castVote(voting, lead1, 0, 2, 0);
+      castVote(voting, mem1a, 0, 2, 0);
+      castVote(voting, mem1b, 0, 2, 0);
+ 
+      let result = await voting.getWinningTeamsForCategory.call(0, true, false);
+console.dir(result);
+
+    });
 
   //   it(`can correctly compute a tie between multiple winners`, async () => {
 
@@ -344,7 +372,7 @@ contract('Voting', accounts => {
   //   it(`can correctly compute a winner including non-member participants`, async () => {
 
   //   });
-  // });
+  });
 
   // describe('getBestInShow', () => {
   //   it(`computes overall winner(s)`, async () => {
