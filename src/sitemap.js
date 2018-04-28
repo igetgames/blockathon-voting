@@ -5,18 +5,22 @@ import VotingCategories from './pages/VotingCategories';
 
 export default [
   {
-    component: Home
+    component: Home,
+    label: 'Home'
   },
   {
     component: Teams,
-    path: 'teams'
+    path: 'teams',
+    label: 'Teams'
   },
   {
     component: VotingCategories,
-    path: 'categories'
+    path: 'categories',
+    label: 'Categories'
   },
   {
     component: Vote,
-    path: 'vote'
+    path: 'vote',
+    label: 'Vote'
   }
 ];

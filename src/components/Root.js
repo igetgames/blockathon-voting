@@ -1,13 +1,38 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import Anchor from 'grommet/components/Anchor';
 import App from 'grommet/components/App';
+import Article from 'grommet/components/Article';
+import Header from 'grommet/components/Header';
+import Menu from 'grommet/components/Menu';
 import Router, { Routes } from './Router';
 import sitemap from '../sitemap';
+
+const menuAnchors = sitemap.reduce((anchors, content) => {
+  if (content.label) {
+    anchors.push(
+      <Anchor
+        key={content.path || '/'}
+        path={`/${content.path || ''}`}
+      >
+        {content.label}
+      </Anchor>
+    );
+  }
+  return anchors;
+}, []);
 
 export default () => (
   <BrowserRouter>
     <App>
-      <Router routes={<Routes sitemap={sitemap} />} />
+      <Article>
+        <Header fixed={false} appCentered={true}>
+          <Menu direction="row">
+            {menuAnchors}
+          </Menu>
+        </Header>
+        <Router routes={<Routes sitemap={sitemap} />} />
+      </Article>
     </App>
   </BrowserRouter>
 );
