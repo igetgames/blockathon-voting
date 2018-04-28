@@ -8,6 +8,7 @@ const createRoutes = (contents, path) => (
       <Route
         path={(path || '') + '/' + (content.path || '')}
         component={content.component}
+        exact={content.exact || true}
         key={routes.length}
       />
     );
