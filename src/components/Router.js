@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import sitemap from './sitemap';
-import './App.css';
+import sitemap from '../sitemap';
 
 const createRoutes = (contents, path) => (
   contents.reduce((routes, content) => {
